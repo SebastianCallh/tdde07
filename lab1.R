@@ -85,3 +85,17 @@ plot(sapply(K, posterior))
 
 plot(Von.Mises(Y, mu, 0), ylim = c(0,4))
 points(Y)
+
+
+# Sebas kvällsmeck
+Y          <- c(-2.44, 2.14, 2.54, 1.83, 2.02, 2.33, -2.79, 2.23, 2.07, 2.02)
+mu         <- 2.39
+lambda     <- 1
+kappas     <- seq(0, 10, 0.05)
+likelihood <- sapply(kappas, function (k) { prod(Von.Mises(Y, mu, k)) })
+prior      <- dexp(kappas, lambda)
+posterior  <- likelihood * prior
+plot(posterior, col = 'orange', type = 'l')
+kappas[which.max(posterior)]
+#plot(kappas, type ='l', col = 'green')
+#lines(sapply(kappas, likelihood), col = 'blue')
