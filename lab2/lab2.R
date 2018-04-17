@@ -13,6 +13,7 @@ omega0 <- 1*diag(3)           # same variance for betas, we dont know much
 v0      <- 20
 sigma0  <- 2
 sigma2s <- v0*sigma0/rchisq(nDraws, v0)
+n       <- length(X)
 
 # Plot of prior variance
 plot(density(sigma2s),
@@ -41,6 +42,8 @@ for (i in 2:10) {
 }
 
 # c) Simulating from posterior distribution
-A   <- t(X) %*% X
+A   <- as.numeric(t(X) %*% X)
 beta_hat <- apply(thetas[, 1:3], 2, mean) # minimize sqaure loss
-mun <- solve(A + omega0) %*% (A*beta_hat + omega0*mu0)
+mun      <- solve(A + omega0) %*% (A*beta_hat + omega0*mu0)
+omegan   <- A + omega0
+vn       <- v0 + n
