@@ -75,6 +75,7 @@ y    <- as.vector(data[,1])
 X    <- as.matrix(data[,-1])
 
 glmModel <- glm(Work ~0 + ., data=data, family = binomial)
+plot(glmModel$weights)
 
 # b)
 # want posterior
@@ -108,6 +109,6 @@ beta.post <- rmvnorm(10000, beta_hat, -solve(J))
 
 # compute 95% credible interval for NSmallChild?
 x <- c(1, 10, 8, 10, 1, 40, 1, 1)
-y_hat <- beta.post %*% x
+y_hat <- x %*% t(beta.post)
 p <- 1 / (1 + exp(-y_hat))
 hist(p, breaks = 100)
