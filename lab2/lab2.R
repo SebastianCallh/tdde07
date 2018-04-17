@@ -1,47 +1,46 @@
-dinvgamma <- function(x, a, b) {
-  (b^a)/gamma(a) * x^(-a-1) * exp(-b/x)
-}
+library(mvtnorm)
+data <- read.csv("TempLinkoping.txt", sep = "\t")
+X <- data$temp
 
-dinvchisq2 <- function(x, n, tau2) {
-  a <- n / 2
-  b <- n*tau2 / 2
-  dinvgamma(x, a, b)
-}
+# 1. Linear and polynomial regression
 
-sigma.prior <- function (x) {
-  v0     <- 20
-  sigma0 <- 2
-  sigma.delta <- 0.05
-  dinvchisq2(x, v0, sigma0)
-}
+#a) Determining the prior distribution
+delta <- 0.01
+times <- seq(delta, 1, delta)
+nDraws  <- 5000 
+mu0    <- c(-10, 150, -150)   # From tuning the plotted polynomial
+omega0 <- 1*diag(3)           # same variance for betas, we dont know much
+v0      <- 20
+sigma0  <- 2
+sigma2s <- v0*sigma0/rchisq(nDraws, v0)
 
-theta.prior <- function(mu, sigma) {
-  theta.delta <- 0.05
-  dnorm(x, mu, sigma)
-}
-
-sigma.grid  <- seq(0, 20, sigma.delta)
-plot(sigma.grid, sapply(sigma.grid, sigma.prior),
+# Plot of prior variance
+plot(density(sigma2s),
      main = "Sigma^2 prior",
      xlab = expression(sigma^2),
      ylab = "Density",
      type = 'l')  
 
-theta.grid  <- seq(-5, 5, theta.delta)
-plot(theta.grid, sapply(theta.grid, theta.prior),
-     main = "Theta prior",
-     xlab = expression(theta),
-     ylab = "Density",
-     type = 'l')
+# Thetas are matrix of theta - all parameters with priors
+thetas <- cbind(t(sapply(sigma2s, function(sigma2) { 
+  rmvnorm(1, mu0, sigma2*solve(omega0))
+})), sigma2s)
 
-nDraws  <- 5000 
-v0      <- 20
-sigma0  <- 2
-sigma2s <- v0*sigma0/rchisq(nDraws, v0)
-plot(density(sigma2))
+# y is the prior distribution of the model
+y <- apply(thetas[seq(1, 10),], 1, function(theta) {
+  sapply(times, function(time) {
+    theta[1] + theta[2]*time + theta[3]*time^2 + rnorm(1, 0, theta[4])
+  })
+})
 
-mu0    <- 8 # celcius from TDDE01 
-kappa0 <- 2 # celcius from TDDE01 
-thetas <- sapply(sigma2s, function(sigma2) { rnorm(1, mu0, sqrt(sigma2/kappa0)) })
-plot(density(thetas))
-mean(thetas)
+
+#b) Check if prior distribution is sensible
+plot(y[,1], type = 'l', ylim = c(-15, 40))
+for (i in 2:10) {
+  lines(y[,i])
+}
+
+# c) Simulating from posterior distribution
+A   <- t(X) %*% X
+beta_hat <- apply(thetas[, 1:3], 2, mean) # minimize sqaure loss
+mun <- solve(A + omega0) %*% (A*beta_hat + omega0*mu0)
