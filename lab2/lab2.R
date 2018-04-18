@@ -21,6 +21,8 @@ sigma0  <- 2
 sigma2s <- rinvchisq(v0, sigma0, nDraws)#v0*sigma0/rchisq(nDraws, v0)
 n       <- length(X)
 
+glmthing <- lm(temp ~ time + I(time^2), data = data)
+summary(glmthing)
 
 # Plot of prior variance
 plot(density(sigma2s),
@@ -67,15 +69,16 @@ post.betas   <- t(sapply(post.sigma2s, function(post.sigma2) {
   rmvnorm(1, mun, post.sigma2 * solve(omegan)) 
 }))
 
-post.temp   <- apply(post.betas[seq(1,10),], 1, function(theta) {
+post.temp   <- apply(post.betas, 1, function(theta) {
   sapply(X, function(time) {
     theta[1] + theta[2]*time + theta[3]*time^2
   })
 })
 
-plot(X, Y)
-lines(y=post.temp[,1],x=X)
-
+plot(X, Y, ylim=c(-15,30))
+for (i in 1:50) {
+  lines(y=post.temp[,i],x=X)
+}
 
 # 2. Posterior approximation for classification with logistic regression
 
