@@ -52,8 +52,8 @@ for (i in 2:10) {
 A   <- as.numeric(t(X) %*% X)
 B   <- as.numeric(t(Y) %*% Y)
 beta_hat <- apply(thetas[, 1:3], 2, mean) # minimize sqaure loss
-beta.hat <- as.numeric(solve(t(X)%*%X)%*%t(X)%*%Y) # Gives sensible values
-mun      <- solve(A + omega0) %*% (A*beta.hat + omega0%*%mu0)
+beta.hat <- as.numeric(solve(t(X)%*%X)%*%t(X)%*%Y) # Scalar, Gives sensible values
+mun      <- solve(A + omega0) %*% (A*beta.hat + omega0%*%mu0) 
 omegan   <- A + omega0
 vn       <- v0 + n
 sigma2n  <- as.numeric((v0%*%sigma0 + (B + t(mu0)%*%omega0%*%mu0 - t(mun)%*%omegan%*%mun))/vn)
@@ -65,16 +65,18 @@ post.betas   <- sapply(post.sigma2s, function(post.sigma2) {
   rmvnorm(1, mun, post.sigma2 * solve(omegan)) 
 })
 
-
-post.temp   <- apply(post.betas[seq(1,10),], 1, function(theta) {
+post.betas <- t(post.betas)
+post.temp   <- apply(post.betas, 1, function(theta) {
   sapply(X, function(time) {
     theta[1] + theta[2]*time + theta[3]*time^2
   })
 })
 
 
-plot(X, Y)
-lines(y=post.temp[,1],x=X)
+plot(X, Y, ylim=c(-10,60))
+for (i in 1:50) {
+  lines(y=post.temp[,i],x=X)
+}
 
 
 # 2. Posterior approximation for classification with logistic regression
