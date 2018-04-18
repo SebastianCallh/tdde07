@@ -37,22 +37,24 @@ thetas <- cbind(t(sapply(sigma2s, function(sigma2) {
 # y is the prior distribution of the model
 prior.temp <- apply(thetas[seq(1, 10),], 1, function(theta) {
   sapply(times, function(time) {
-    theta[1] + theta[2]*time + theta[3]*time^2 + rnorm(1, 0, theta[4])
+    theta[1] + theta[2]*time + theta[3]*time^2 #+ rnorm(1, 0, theta[4])
   })
 })
 
 
 #b) Check if prior distribution is sensible
-plot(prior.temp[,1], type = 'l', ylim = c(-15, 40))
+m <- dim(prior.temp)[1]
+x.axis <- (1:m) / m
+plot(x.axis, prior.temp[,1], type = 'l', ylim = c(-15, 40))
 for (i in 2:10) {
-  lines(prior.temp[,i])
+  lines(x.axis, prior.temp[,i])
 }
 
 # c) Simulating from posterior distribution
 A   <- as.numeric(t(X) %*% X)
 B   <- as.numeric(t(Y) %*% Y)
-beta_hat <- apply(thetas[, 1:3], 2, mean) # minimize sqaure loss
-beta.hat <- as.numeric(solve(t(X)%*%X)%*%t(X)%*%Y) # Gives sensible values
+beta_hat <- apply(thetas[, 1:3], 2, mean)          # minimize sqaure loss
+beta.hat <- as.numeric(solve(t(X)%*%X)%*%t(X)%*%Y) # OLS 
 mun      <- solve(A + omega0) %*% (A*beta.hat + omega0%*%mu0)
 omegan   <- A + omega0
 vn       <- v0 + n
@@ -61,17 +63,15 @@ sigma2n  <- as.numeric((v0%*%sigma0 + (B + t(mu0)%*%omega0%*%mu0 - t(mun)%*%omeg
 
 
 post.sigma2s <- rinvchisq(vn, sigma2n, posteriorDraws)
-post.betas   <- sapply(post.sigma2s, function(post.sigma2) {
+post.betas   <- t(sapply(post.sigma2s, function(post.sigma2) {
   rmvnorm(1, mun, post.sigma2 * solve(omegan)) 
-})
-
+}))
 
 post.temp   <- apply(post.betas[seq(1,10),], 1, function(theta) {
   sapply(X, function(time) {
     theta[1] + theta[2]*time + theta[3]*time^2
   })
 })
-
 
 plot(X, Y)
 lines(y=post.temp[,1],x=X)
