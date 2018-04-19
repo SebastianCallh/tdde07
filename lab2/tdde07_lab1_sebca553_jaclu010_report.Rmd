@@ -14,7 +14,7 @@ source('lab2.R')
 
 ### a)
 
-When selecting the prior hyperparameters we had some domain knowledge from the course TDDE01, where we had processed weather data before. From that we knew that the mean temperature in Sweden was about 8 degrees. Of course, we also knew that it is warmer during the middle half of the year than the earlier/later. Apart from that we knew very little, so in the light of that knowledge we assigned our priors by iteratively plotting a collection of prior regression curves and tweaking our values. The final paremetrisation was $\mu_0 =(-10, 150, -150)$, $\nu_o=20$ and $\Omega_0= \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix}$ and $\sigma^2=2$. A collection of prior prediction curves from the final parametrisation can be seen below.
+When selecting the prior hyperparameters we had some domain knowledge from the course TDDE01, where we had processed weather data before. From that we knew that the mean temperature in Sweden was about 8 degrees. Of course, we also knew that it is warmer during the middle half of the year than the earlier/later. Apart from that we knew very little, so in the light of that knowledge we assigned our priors by iteratively plotting a collection of prior regression curves and tweaking our values. The final paremetrisation was:  $$\mu_0 =(-10, 150, -150),\nu_o=20,\Omega_0= \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix},\sigma^2=2$$. A collection of prior prediction curves from the final parametrisation can be seen below.
 
 ### b)
 ```{r}
@@ -59,8 +59,29 @@ $$J_y^{-1}(\hat{\beta})=\begin{bmatrix}
 \end{bmatrix}$$
 
 
+The plot below shows the distribution of the `NSmallChild` variable. 95% credible interval limits are included. 
+```{r}
+plot.density.nsc()
+sprintf("Credible interval 2.5 %% limit: %f", q1[1])
+sprintf("Credible interval 97.5%% limit: %f", q1[2]) 
+```
+
+Analyzing this plot compared to the plots for all other variables shows that this feature is an important determinant of the probability that a woman works. This assumption is also explained by the summary of the glmModel from task a).
+```{r}
+summary(glmModel)
+```
+
+The `Estimate` column shows a significantly larger value for `NSmallChild` compared to the others. Thus it is important.
+
+### c)
+The predictive distribution that a woman works that is 40 years old, with two children (aged 3 and 9), 8 years of education, 10 years of experience and a husband with income 10 is described by the following plot.
+
+```{r}
+plot.does.work()
+```
+
+Thus, the probability that a woman with the described prerequisites is around $30\%$.
 
 ```{r, code=readLines('lab2.R'), eval=FALSE, echo=TRUE}
-
 ```
 

@@ -157,7 +157,7 @@ beta.post <- rmvnorm(10000, beta_hat, -solve(J))
 
 #NSmallChild
 nsc <- beta.post[,7]
-quantile(nsc, c(0.025, 0.975))
+q1 <- quantile(nsc, c(0.025,0.975))
 plot.density.nsc <- function() {
   plot(density(nsc))
 }
@@ -168,6 +168,4 @@ y_hat <- x %*% t(beta.post)
 p <- 1 / (1 + exp(-y_hat))
 plot.does.work <- function() {
   plot(density(p))
-  quantile(p, c(0.025, 0.975))
 }
-
