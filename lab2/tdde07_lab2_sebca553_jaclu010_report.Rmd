@@ -1,0 +1,86 @@
+---
+title: "TDDE07 - Lab 2"
+author: "Sebastian Callh, Jacob Lundberg"
+date: "18 april 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+source('lab2.R')
+```
+
+## Assignment 1 - Linear and polynomial regression
+
+### a)
+
+When selecting the prior hyperparameters we had some domain knowledge from the course TDDE01, where we had processed weather data before. From that we knew that the mean temperature in Sweden was about 8 degrees. Of course, we also knew that it is warmer during the middle half of the year than the earlier/later. Apart from that we knew very little, so in the light of that knowledge we assigned our priors by iteratively plotting a collection of prior regression curves and tweaking our values. The final paremetrisation was  $$\mu_0 =(-10, 150, -150),\nu_o=20,\Omega_0= \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix},\sigma^2=2.$$ A collection of prior prediction curves from the final parametrisation can be seen below.
+
+### b)
+```{r}
+plot.prior.regression.curves()
+```
+
+### c)
+Since a conjugate prior was used the joint posterior distribution of $\beta$ and $\sigma^2$ was computed by the posterior mapping. A scatter plot with the temperature data and the regression function mean with a 90% credible interval can be seen below.
+
+```{r}
+plot.posterior.betas()
+```
+
+The interval barely contains any data. It should not, since it only quantifies the uncertainty about the data mean and not the actual data.
+
+### d)
+Finding the warmest day is done by finding the maximum of a second degree polynomial. This is done by differentiating the function, setting it to $0$ and solving for $t$ which gives $t=-\frac{\beta_1}{2\beta_2}$. Computing the maximum for several posterior draws of $\beta$ yields the distribution plotted below which has the mean value $196.6476 \approx 197$.
+
+```{r}
+plot.day.density()
+```
+
+### e)
+Since the higher order terms are not believed to be needed they can be assigned $\mu_i=0$ and $\Omega_{0,ii}$ very large. That is, we assign the prior formalizing our beliefe that they should be very small. That will reduce the models flexibility and combat overfitting. 
+
+## 2. Posterior approximation for classification with logistic regression
+### a)
+No questions asked on this part.
+
+### b)
+Using `optim.R` to find $\hat{\beta}=(0.38, -0.01, 0.11, 0.10, -0.09, -0.05, -0.82, -0.01)$ and 
+$$J_y^{-1}(\hat{\beta})=\begin{bmatrix} 
+-105.78  &  -2216.83 &  -1311.95 & -1047.17  &  -156.42 & -4451.79   & -27.35  & -137.88 \\
+-2216.83 & -60854.93 & -28817.20 & -21918.24 & -3196.04 & -94428.20  & -542.68 & -2776.39 \\
+-1311.91 & -28817.20 & -16881.39 & -12957.13 & -1907.13 & -55135.90  & -361.45 & -1657.08 \\
+-1047.17 & -21918.24 & -12957.13 & -15641.80 & -2930.44 & -46403.13  & -208.47 & -1061.18 \\
+-156.42  & -3196.04  & -1907.13  & -2930.43  & -645.15  & -7243.13   & -21.19  & -124.80 \\
+-4451.79 & -94428.20 & -55135.90 & -46403.13 & -7243.13 & -194210.76 & -930.93 & -5397.63 \\
+-27.35   & -542.68   & -361.45   & -208.48   & -21.20   & -930.93    & -34.64  & -40.13 \\
+-137.88  & -2776.32  & -1657.09  & -1061.18  & -124.80  & -5397.64   & -40.13  & -368.02 \\
+\end{bmatrix}$$
+
+
+The plot below shows the distribution of the `NSmallChild` variable. 95% credible interval limits are included. 
+
+```{r}
+plot.density.nsc()
+sprintf("Credible interval 2.5 %% limit: %f", q1[1])
+sprintf("Credible interval 97.5%% limit: %f", q1[2]) 
+```
+
+Comparing the posterior mean of the other $\beta$ show that the $\beta$ corresponding to `NSmallChild` is the biggest, and because of that `NSmallChild`is an important factor. The actuall numbers can be seen below.  
+```{r}
+summary(glmModel)
+```
+
+The `Estimate` column shows a significantly larger value for `NSmallChild` compared to the others. Thus it is important.
+
+### c)
+The predictive distribution that a woman works that is 40 years old, with two children (aged 3 and 9), 8 years of education, 10 years of experience and a husband with income 10 is described by the following plot.
+
+```{r}
+plot.does.work()
+```
+\pagebreak
+
+```{r, code=readLines('lab2.R'), eval=FALSE, echo=TRUE}
+```
+

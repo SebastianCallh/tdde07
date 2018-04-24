@@ -45,13 +45,17 @@ prior.temp <- apply(thetas[seq(1, 10),], 1, function(theta) {
   })
 })
 
-
 #b) Check if prior distribution is sensible
 m <- dim(prior.temp)[1]
 x.axis <- (1:m) / m
 
 plot.prior.regression.curves <- function () {
-  plot(x.axis, prior.temp[,1], type = 'l', ylim = c(-15, 40))
+  plot(x.axis, prior.temp[,1], 
+       type = 'l', 
+       ylim = c(-15, 40),
+       xlab = "Time",
+       ylab = "Temperature",
+       main = "Prior regression curves")
   for (i in 2:10) {
     lines(x.axis, prior.temp[,i])
   }
@@ -90,11 +94,23 @@ bounds <- as.matrix(sapply(times, function(t) {
 }))
 
 plot.posterior.betas <- function() {
-  plot(data$time, data$temp, ylim=c(-20,25))
-  lines(data$time, post.pred.mean)
+  plot(data$time, 
+       data$temp, 
+       ylim = c(-20,25), 
+       col  = "Gray",
+       xlab = "Time",
+       ylab = "Temperature",
+       main = "Posterior mean and credible intervals")
+  lines(data$time, post.pred.mean, col = "Gray")
   lines(x=times,y=bounds[1,], col = 'Blue')
   lines(x=times,y=bounds[2,], col = 'Red')
-}
+  legend("topright", 
+         c("5% credible interval", "95% credible interval", "Posterior mean"), 
+         lty=1, 
+         col=c("Blue", "Red", "Black"), 
+         bty='n', 
+         cex=.75)
+  }
 
 # d)
 x_tilde <- which.max(post.pred.mean)
@@ -107,7 +123,10 @@ day <- as.matrix(apply(post.betas, 1, function(beta) {
 }))
 mean(day)
 plot.day.density <- function() {
-  plot(density(day))
+  plot(density(day),
+       main = "Density of warmest day of the year for different betas",
+       xlab = "Day",
+       ylab = "Temperature")
 }
 
 # e)
@@ -159,7 +178,9 @@ beta.post <- rmvnorm(10000, beta_hat, -solve(J))
 nsc <- beta.post[,7]
 q1 <- quantile(nsc, c(0.025,0.975))
 plot.density.nsc <- function() {
-  plot(density(nsc))
+  plot(density(nsc),
+       main = "Posterior density of beta corresponding to NSmallChild",
+       xlab = expression(beta))
 }
 
 # compute 95% credible interval for NSmallChild?
@@ -167,5 +188,8 @@ x <- c(1, 10, 8, 10, 1, 40, 1, 1)
 y_hat <- x %*% t(beta.post)
 p <- 1 / (1 + exp(-y_hat))
 plot.does.work <- function() {
-  plot(density(p))
+  plot(density(p),
+       xlab = "Work",
+       main = "Predictive density of the probability of the woman working")
+  sprintf("The mean probability that the woman works is %.2f", mean(p))
 }
