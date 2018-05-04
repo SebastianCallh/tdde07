@@ -5,11 +5,13 @@ date: "4 maj 2018"
 output:
   pdf_document:
     fig_height: 4
+    fig_width: 5
     fig_caption: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.align = "center")
 source('lab3_no_stan.R')
 ```
 
@@ -17,60 +19,89 @@ source('lab3_no_stan.R')
 
 ### a) - Normal model
 
-#### (i) - Gibbs sampler
-```{r}
-plot.normal.approximation()
-```
-
-
 #### (ii) - Analysis
+Looking at the trajectories for $\mu$ and $\sigma$ it can be seen that the values are not very auto correlated, which implies good draws. They also oscillate around a stable value.
+```{r}
+plot.gibbs.trajectory()
+```
 
 ### b) Mixture normal model
-
-![mixture-of-normals](mixture-of-normals.eps)
+After running the `NormalMixtureGibbs.R` for 30 iterations the mixture model had converged to the distribution seen in the plot below.
+\centerline{\includegraphics[width=0.9\textwidth]{mixture-of-normals.eps}}
 
 ### c) Graphical comparison
-```{r}
-plot.graphical.comparison()
-```
-
-\pagebreak
+\centerline{\includegraphics[width=0.9\textwidth]{graphical-compasison.eps}}
 
 ## 2. Time-series models in Stan
 
 ### a)
+Plotting realizations of the AR(1)-process shows that a high $\phi$ gives a smoothing effect and a small (into the negatives) gives an oscillating effect. When $\phi$ is close to zero all contributions of $x_{t-1}$ is supressed and only white noise remains.
+
 ```{r}
 plot.ar.process()
 ```
 
 ### b)
 
+### i)
+For each of the processes, $\sigma$ 
+4000 draws.
+
+\begin{table}[h!]
+  \begin{center}
+    \caption{Estimated parameters of AR(1) process X ($\phi = 0.3$)}
+    \begin{tabular}{c|c|c|c}
+      & $\mu$ & $\sigma$ & $\phi$ \\
+      \hline
+      Mean  & 7.25 & 1.38 & 0.28 \\
+      2.5\%  & 5.83 & 1.24 & 0.14 \\
+      97.5\% & 8.62 & 1.53 & 0.42 \\
+      Eff. samples & 1108 & 1450 & 1098 \\
+      True value & 10 & 1.41 & 0.3 \\
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\centerline{\includegraphics[width=0.7\textwidth]{estimated-parameters-of-from-x.eps}}
+
+\begin{table}[h!]
+  \begin{center}
+    \caption{Estimated parameters of AR(1) process Y ($\phi = 0.95$)}
+    \begin{tabular}{c|c|c|c}
+      & $\mu$ & $\sigma$ & $\phi$ \\
+      \hline
+      Mean   & 0.35  & 1.34 & 0.96 \\
+      2.5\%  & -0.10 & 1.22 & 0.92 \\
+      97.5\% & 0.81  & 1.48 & 1.00 \\
+      Eff. samples & 1726 & 2166 & 1729 \\
+      True value & 10 & 1.41 & 0.95 \\
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\centerline{\includegraphics[width=0.7\textwidth]{estimated-parameters-of-from-y.eps}}
+
+### ii)
+
+\centerline{\includegraphics[width=0.9\textwidth]{joint-posterior-density-ar-y.eps}}
+\centerline{\includegraphics[width=0.9\textwidth]{joint-posterior-density-ar-x.eps}}
 
 ### c)
 
-\pagebreak
-
-![joint-posterior-density-ar-y.eps](joint-posterior-density-ar-y.eps)
-![joint-posterior-density-ar-x.eps](joint-posterior-density-ar-x.eps)
-
-![estiamted-parameters-of-from-x.eps](estiamted-parameters-of-from-x.eps)
-![estiamted-parameters-of-from-y.eps](estiamted-parameters-of-from-y.eps)
-
-![estiamted-parameters-of-from-y.eps](posterios-credible-interval.eps)
 
 
 
-![Posterior without sigma prior](posterior-without-sigma-prior.eps)
 
-\pagebreak
 
-![Posterior with sigma 0.02 prior](posterior-with-sigma-0.02-prior.eps)
+\centerline{\includegraphics[width=0.9\textwidth]{posterior-credible-interval.eps}}
 
-\pagebreak
+\centerline{\includegraphics[width=0.9\textwidth]{posterior-without-sigma-prior.eps}}
 
-!["Posterior with sigma prior"](posterior-with-sigma-prior.eps)
 
-\pagebreak
+\centerline{\includegraphics[width=0.9\textwidth]{posterior-with-sigma-0.02-prior.eps}}
+
+\centerline{\includegraphics[width=0.9\textwidth]{posterior-with-sigma-prior.eps}}
+
 
 ### d)
 
@@ -83,6 +114,20 @@ plot.ar.process()
 
 ### Stan file
 
-```{r, code=readLines('time-series.stan'), echo=TRUE, eval=FALSE}
+```{r, echo=TRUE, eval=FALSE}
+data {
+  int<lower=0> N;
+  vector[N] x;
+}
 
+parameters {
+  real mu;
+  real<lower=0> sigma;
+  real phi;
+}
+
+model {
+  x[2:N] ~ normal(mu + phi * x[1:(N - 1)], sigma);
+}
 ```
+
