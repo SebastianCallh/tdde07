@@ -2,30 +2,71 @@
 title: "TDDE07 - Lab 3"
 author: "Sebastian Callh, Jacob Lundberg"
 date: "4 maj 2018"
-output: pdf_document
+output:
+  pdf_document:
+    fig_height: 4
+    fig_caption: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-source('tdde07_lab3_sebca553_jaclu010_code.R')
+source('lab3_no_stan.R')
 ```
 
-## R Markdown
+## 1. Normal model, mixture of normal model with semi-conjugate prior
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+### a) - Normal model
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+#### (i) - Gibbs sampler
+```{r}
+plot.normal.approximation()
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+#### (ii) - Analysis
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+### b) Mixture normal model
+
+
+### c) Graphical comparison
+```{r}
+plot.graphical.comparison()
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+\pagebreak
+
+## 2. Time-series models in Stan
+
+### a)
+```{r}
+plot.ar.process()
+```
+
+### b)
+
+
+### c)
+
+\pagebreak
+
+!["Posterior without sigma prior"](posterior-without-sigma-prior.eps)
+
+\pagebreak
+
+!["Posterior with sigma 0.02 prior"](posterior-with-sigma-0.02-prior.eps)
+
+\pagebreak
+
+!["Posterior with sigma prior"](posterior-with-sigma-prior.eps)
+
+\pagebreak
+
+### d)
+
+\pagebreak
+
+## Appendix
+```{r, code=readLines('tdde07_lab3_sebca553_jaclu010_code.R'), echo=TRUE, eval=FALSE}
+
+```
+

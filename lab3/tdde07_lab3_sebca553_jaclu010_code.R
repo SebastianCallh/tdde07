@@ -54,6 +54,9 @@ plot.normal.approximation <- function () {
 # Model options
 nComp <- 2                  # Number of mixture components
 
+# MCMC options
+nIter <- 30 # Number of Gibbs sampling draws
+
 # Prior options
 alpha     <- 10*rep(1,nComp)   # Dirichlet(alpha)
 muPrior   <- rep(mu0,nComp)    # Prior mean of mu
@@ -61,7 +64,12 @@ tau2Prior <- rep(tau0,nComp)   # Prior std of mu
 sigma2_0  <- rep(sigma0,nComp) # s20 (best guess of sigma2)
 nu0       <- rep(nu0,nComp)    # degrees of freedom for prior on sigma2
 
+#setEPS()
+#postscript("mixture-of-normals.eps")
 #source("NormalMixtureGibbs.R")
+#points(campy.data)
+#dev.off()
+
 
 # c) Graphical comparison
 
@@ -70,10 +78,19 @@ gibbs.sigma <- sqrt(mean(thetas[,2]))
 delta <- 0.05
 grid  <- seq(-100, 300, delta)
 
-plot.graphical.comparison <- funtion () {
-  plot(density(x), col = 'black')
+plot.graphical.comparison <- function () {
+    plot(density(x), col = 'black',
+         main ="Graphical comparison of the data and approximations",
+         ylab = "Density",
+         xlab  = "Precipitation")
   lines(grid, dnorm(grid, gibbs.mu, gibbs.sigma), type = 'l', col = 'green')
   lines(xGrid, mixDens, type = 'l', col = "orange")
+  legend("topright", 
+       c("Kernel density estimate of data", "Normal approximation", "Mixture of normals (2 normals)"), 
+       lty=1, 
+       col=c("black", "green", "orange"), 
+       bty='n', 
+       cex=.75)
 }
 
 # 2 Time series models in Stan
@@ -100,8 +117,9 @@ s <- sqrt(2)
 x <- ar.process(phi1, mu, s, T)
 y <- ar.process(phi2, mu, s, T)
 
-plot(x, type ='l')
-
+plot.ar.process <- function () {
+    plot(x, type ='l')
+}
 
 # b)
 
@@ -126,8 +144,17 @@ sigma.x.post <- posterior.mean.x[2, 5]
 phi.x.post   <- posterior.mean.x[3, 5]
 x.params <- extract(x.fit, pars = c("mu", "phi"))
 y.params <- extract(y.fit, pars = c("mu", "phi"))
-plot(x.params$mu, x.params$phi)
-plot(y.params$mu, y.params$phi)
+plot(x    = x.params$mu,
+     y    = x.params$phi,
+     main = 'Joint posterior density of mu and phi for process x',
+     xlab = expression(mu),
+     ylab = expression(phi))
+
+plot(x    = y.params$mu,
+     y    = y.params$phi,
+     main = 'Joint posterior density of mu and phi for process y',
+     xlab = expression(mu),
+     ylab = expression(phi))
 
 mu.y.post    <- posterior.mean.y[1, 5]
 sigma.y.post <- posterior.mean.y[2, 5]
@@ -136,16 +163,26 @@ phi.y.post   <- posterior.mean.y[3, 5]
 z.x <- ar.process(phi.x.post, mu.x.post, sigma.x.post, T)
 z.y <- ar.process(phi.y.post, mu.y.post, sigma.y.post, T)
 
+setEPS()
+postscript("estimated-parameters-of-from-y.eps")
 plot(y.fit)
-summary(y.fit)
-plot(x, type = 'l', col = 'red')
-lines(z, col = 'blue')
-fit
-plot(fit)
+dev.off()
 
-d <- 0.05
-grid <- seq(0, 2, d)
-plot(grid, dnorm(grid, 0, 0.02))
+setEPS()
+postscript("estimated-parameters-of-from-x.eps")
+plot(x.fit)
+dev.off()
+
+plot.sigma.prior <- function () {
+    d <- 0.01
+    grid <- seq(0, 2, d)
+    plot(grid, dnorm(grid, 0, 0.02),
+         type = 'l',
+         main = '(Unnormalized) Prior density for sigma',
+         xlab = expression(sigma),
+         ylab = 'Density'
+         )
+}
 
 # c)
 
@@ -159,19 +196,28 @@ c.fit <- stan(file ="campy.stan",
 params <- extract(c.fit, pars = c("mu", "sigma"))
 x <- extract(c.fit, pars = "x")
 
-
 mean(params$sigma)
 theta.t <- exp(x$x)
 x.mean <- apply(theta.t, 2, mean)
 x.quant <- apply(theta.t, 2, quantile, probs=c(0.025,0.975))
-xb
-setEPS()
-postscript("posterior-with-sigma-0.02-prior.eps")
-plot(x.quant[1,], type = 'l', col='red')
+
+#setEPS()
+#postscript("posterior-with-sigma-0.02-prior.eps")
+plot.ar.posterior.mean <- function () {
+plot(x.quant[1,], type = 'l', col='red',
+     main = "Plot of posterior mean and 95% credible interval",
+     xlab = "T",
+     ylab = "Process")
 lines(x.quant[2,], type = 'l', col='blue')
 lines(x.mean, type = 'l')
-points(campy.data)
-dev.off()
+points(campy.data, col = 'grey')
+legend("topright", 
+       c("5% credible interval", "95% credible interval", "Posterior mean"), 
+       lty=1, 
+       col=c("red", "blue", "grey"), 
+       bty='n', 
+       cex=.75)
+}
 
 c.df <- as.data.frame(fit)
 head(as.matrix(c.fit)[,1])
