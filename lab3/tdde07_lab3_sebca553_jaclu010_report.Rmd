@@ -27,6 +27,7 @@ plot.normal.approximation()
 
 ### b) Mixture normal model
 
+![mixture-of-normals](mixture-of-normals.eps)
 
 ### c) Graphical comparison
 ```{r}
@@ -49,11 +50,21 @@ plot.ar.process()
 
 \pagebreak
 
-!["Posterior without sigma prior"](posterior-without-sigma-prior.eps)
+![joint-posterior-density-ar-y.eps](joint-posterior-density-ar-y.eps)
+![joint-posterior-density-ar-x.eps](joint-posterior-density-ar-x.eps)
+
+![estiamted-parameters-of-from-x.eps](estiamted-parameters-of-from-x.eps)
+![estiamted-parameters-of-from-y.eps](estiamted-parameters-of-from-y.eps)
+
+![estiamted-parameters-of-from-y.eps](posterios-credible-interval.eps)
+
+
+
+![Posterior without sigma prior](posterior-without-sigma-prior.eps)
 
 \pagebreak
 
-!["Posterior with sigma 0.02 prior"](posterior-with-sigma-0.02-prior.eps)
+![Posterior with sigma 0.02 prior](posterior-with-sigma-0.02-prior.eps)
 
 \pagebreak
 
@@ -70,3 +81,8 @@ plot.ar.process()
 
 ```
 
+### Stan file
+
+```{r, code=readLines('time-series.stan'), echo=TRUE, eval=FALSE}
+
+```
