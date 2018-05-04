@@ -70,7 +70,7 @@ gibbs.sigma <- sqrt(mean(thetas[,2]))
 delta <- 0.05
 grid  <- seq(-100, 300, delta)
 
-plot.graphical.comparison <- fuction () {
+plot.graphical.comparison <- funtion () {
   plot(density(x), col = 'black')
   lines(grid, dnorm(grid, gibbs.mu, gibbs.sigma), type = 'l', col = 'green')
   lines(xGrid, mixDens, type = 'l', col = "orange")
