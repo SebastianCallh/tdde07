@@ -78,20 +78,108 @@ plot.graphical.comparison <- fuction () {
 
 # 2 Time series models in Stan
 library(rstan)
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
 
 # a)
 
-T    <- 200
-mu   <- 10
-x    <- rep(0, 200)
-x[1] <- mu
-phi  <- 0.5
-sigma <- sqrt(2)
-time.series.data <- c(
-  x     <- x,
-  mu    <- mu,
-  sigma <- sigma,
-  phi   <- phi
-)
+ar.process <- function (phi, init, sigma, T) {
+    y     <- rep (0, T)
+    y[1]  <- init
+    for (t in 2:T) {
+        y[t] <- mu + phi*(y[t-1] - mu) + rnorm(1, 0, sigma)
+    }
+    y
+}
 
-stan(file = "time-series.stan", data = time.series.data)
+T     <- 200
+mu    <- 10
+phi1  <- 0.3
+phi2  <- 0.95
+s <- sqrt(2)
+x <- ar.process(phi1, mu, s, T)
+y <- ar.process(phi2, mu, s, T)
+
+plot(x, type ='l')
+
+
+# b)
+
+x.fit <- stan(file = "time-series.stan",
+            data = list(
+                x = x,
+                N = T
+            ))
+y.fit <- stan(file = "time-series.stan",
+            data = list(
+                x = y,
+                N = T
+            ))
+
+posterior.mean.x <- get_posterior_mean(x.fit)
+posterior.mean.y <- get_posterior_mean(y.fit)
+
+head(posterior.mean.y)
+head(posterior.mean.x)
+mu.x.post    <- posterior.mean.x[1, 5]
+sigma.x.post <- posterior.mean.x[2, 5]
+phi.x.post   <- posterior.mean.x[3, 5]
+x.params <- extract(x.fit, pars = c("mu", "phi"))
+y.params <- extract(y.fit, pars = c("mu", "phi"))
+plot(x.params$mu, x.params$phi)
+plot(y.params$mu, y.params$phi)
+
+mu.y.post    <- posterior.mean.y[1, 5]
+sigma.y.post <- posterior.mean.y[2, 5]
+phi.y.post   <- posterior.mean.y[3, 5]
+
+z.x <- ar.process(phi.x.post, mu.x.post, sigma.x.post, T)
+z.y <- ar.process(phi.y.post, mu.y.post, sigma.y.post, T)
+
+plot(y.fit)
+summary(y.fit)
+plot(x, type = 'l', col = 'red')
+lines(z, col = 'blue')
+fit
+plot(fit)
+
+d <- 0.05
+grid <- seq(0, 2, d)
+plot(grid, dnorm(grid, 0, 0.02))
+
+# c)
+
+campy.data <- as.vector(read.table("campy.dat", header = TRUE)[,1])
+c.fit <- stan(file ="campy.stan",
+              data = list (
+                  c = campy.data,
+                  N = length(campy.data)
+              ))
+
+params <- extract(c.fit, pars = c("mu", "sigma"))
+x <- extract(c.fit, pars = "x")
+
+
+mean(params$sigma)
+theta.t <- exp(x$x)
+x.mean <- apply(theta.t, 2, mean)
+x.quant <- apply(theta.t, 2, quantile, probs=c(0.025,0.975))
+xb
+setEPS()
+postscript("posterior-with-sigma-0.02-prior.eps")
+plot(x.quant[1,], type = 'l', col='red')
+lines(x.quant[2,], type = 'l', col='blue')
+lines(x.mean, type = 'l')
+points(campy.data)
+dev.off()
+
+c.df <- as.data.frame(fit)
+head(as.matrix(c.fit)[,1])
+
+# d)
+
+# posterior sigma = 0.2603307 with uniform
+# posterior sigma = 0.2481805 with 0.15
+# posterior sigma = 0.1074629 with 0.02 
+
+

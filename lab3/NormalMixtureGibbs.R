@@ -8,7 +8,7 @@ rawData <- read.table("rainfall.dat", header=FALSE)
 x <- as.matrix(rawData['V1'])
 
 # MCMC options
-nIter <- 1000 # Number of Gibbs sampling draws
+nIter <- 20 # Number of Gibbs sampling draws
 
 # Plotting options
 plotFit <- TRUE
