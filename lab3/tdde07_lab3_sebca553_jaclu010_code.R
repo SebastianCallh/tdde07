@@ -43,9 +43,11 @@ for(i in 2:nIter) {
   thetas[i,] <- Gibbs(thetas[i-1,])
 }
 
-plot(thetas[-1,2], 
-     type = 'l',
-     ylab = 'Value')
+plot.normal.approximation <- function () {
+  plot(thetas[-1,2], 
+       type = 'l',
+       ylab = 'Value')
+}
 
 # b) Mixture normal model
 
@@ -59,7 +61,7 @@ tau2Prior <- rep(tau0,nComp)   # Prior std of mu
 sigma2_0  <- rep(sigma0,nComp) # s20 (best guess of sigma2)
 nu0       <- rep(nu0,nComp)    # degrees of freedom for prior on sigma2
 
-source("NormalMixtureGibbs.R")
+#source("NormalMixtureGibbs.R")
 
 # c) Graphical comparison
 
@@ -67,10 +69,12 @@ gibbs.mu    <- mean(thetas[,1])
 gibbs.sigma <- sqrt(mean(thetas[,2]))
 delta <- 0.05
 grid  <- seq(-100, 300, delta)
-plot(density(x), col = 'black')
-lines(grid, dnorm(grid, gibbs.mu, gibbs.sigma), type = 'l', col = 'green')
-lines(xGrid, mixDens, type = 'l', col = "orange")
 
+plot.graphical.comparison <- fuction () {
+  plot(density(x), col = 'black')
+  lines(grid, dnorm(grid, gibbs.mu, gibbs.sigma), type = 'l', col = 'green')
+  lines(xGrid, mixDens, type = 'l', col = "orange")
+}
 
 # 2 Time series models in Stan
 library(rstan)
