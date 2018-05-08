@@ -94,7 +94,7 @@ plot.graphical.comparison <- function () {
 }
 
 # 2 Time series models in Stan
-library(rstan)
+#library(rstan)
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 

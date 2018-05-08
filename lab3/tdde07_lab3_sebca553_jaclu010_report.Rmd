@@ -1,7 +1,7 @@
 ---
 title: "TDDE07 - Lab 3"
 author: "Sebastian Callh, Jacob Lundberg"
-date: "4 maj 2018"
+date: "8 maj 2018"
 output:
   pdf_document:
     fig_height: 4
@@ -27,6 +27,7 @@ plot.gibbs.trajectory()
 
 ### b) Mixture normal model
 After running the `NormalMixtureGibbs.R` for 30 iterations the mixture model had converged to the distribution seen in the plot below.
+
 \centerline{\includegraphics[width=0.9\textwidth]{mixture-of-normals.eps}}
 
 ### c) Graphical comparison
@@ -44,8 +45,7 @@ plot.ar.process()
 ### b)
 
 ### i)
-For each of the processes, $\sigma$ 
-4000 draws.
+Report of the values of the three estimated parameters $\mu$, $\sigma$ and $\phi$ can be seen below. For process $x$ the parameters were fairly well approximated (the $\mu$ was still quite bad), but for process $y$ the approximated $\mu$ was terrible. We were not able to estimate the true value of $\mu$. The estimation was done with 4000 samples.
 
 \begin{table}[h!]
   \begin{center}
@@ -63,6 +63,8 @@ For each of the processes, $\sigma$
 \end{table}
 
 \centerline{\includegraphics[width=0.7\textwidth]{estimated-parameters-of-from-x.eps}}
+
+\pagebreak
 
 \begin{table}[h!]
   \begin{center}
@@ -83,27 +85,23 @@ For each of the processes, $\sigma$
 
 ### ii)
 
+Plotting the joint posterior distributon of $\mu$ and $\phi$ shows that they are highly inversely correlated. 
+
 \centerline{\includegraphics[width=0.9\textwidth]{joint-posterior-density-ar-y.eps}}
 \centerline{\includegraphics[width=0.9\textwidth]{joint-posterior-density-ar-x.eps}}
 
 ### c)
 
-
-
-
-
+Estimating the model with Stan and plotting the posterior mean with the data resulted in the following plot.
 
 \centerline{\includegraphics[width=0.9\textwidth]{posterior-credible-interval.eps}}
+y <- ar.process(phi2, mu, s, T)
+### d)
 
-\centerline{\includegraphics[width=0.9\textwidth]{posterior-without-sigma-prior.eps}}
+Assuming a normal prior on $\sigma^2$ with $\mu = 0$, $\tau^2 = 0.02$ forces the process to vary more slowly. This is reflected in the posterior, which shows that the process is too slow to capture the data.
 
 
 \centerline{\includegraphics[width=0.9\textwidth]{posterior-with-sigma-0.02-prior.eps}}
-
-\centerline{\includegraphics[width=0.9\textwidth]{posterior-with-sigma-prior.eps}}
-
-
-### d)
 
 \pagebreak
 
@@ -121,13 +119,37 @@ data {
 }
 
 parameters {
-  real mu;
+  real mu;y <- ar.process(phi2, mu, s, T)
   real<lower=0> sigma;
   real phi;
 }
 
 model {
   x[2:N] ~ normal(mu + phi * x[1:(N - 1)], sigma);
+}
+```
+
+### Stan file for `campy.dat`
+
+```{r, echo=TRUE, eval=FALSE}
+data {
+  int<lower=0> N;
+  int c[N];
+}
+
+parameters {
+  real mu;
+  real<lower=0> sigma;
+  real phi;
+  vector[N] x;
+}
+
+model {
+  // sigma  ~ normal(0, 0.02);
+  phi    ~ normal(0, 0.6);
+  x[2:N] ~ normal(mu + phi * x[1:(N - 1)], sigma);
+  for (n in 1:N)
+    c[n] ~ poisson(exp(x[n]));
 }
 ```
 
