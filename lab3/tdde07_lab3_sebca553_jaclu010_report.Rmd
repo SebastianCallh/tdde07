@@ -95,7 +95,7 @@ Plotting the joint posterior distributon of $\mu$ and $\phi$ shows that they are
 Estimating the model with Stan and plotting the posterior mean with the data resulted in the following plot.
 
 \centerline{\includegraphics[width=0.9\textwidth]{posterior-credible-interval.eps}}
-y <- ar.process(phi2, mu, s, T)
+
 ### d)
 
 Assuming a normal prior on $\sigma^2$ with $\mu = 0$, $\tau^2 = 0.02$ forces the process to vary more slowly. This is reflected in the posterior, which shows that the process is too slow to capture the data.
