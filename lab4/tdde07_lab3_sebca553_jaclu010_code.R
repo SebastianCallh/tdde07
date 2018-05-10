@@ -3,7 +3,7 @@
 
 # a)
 ebay.data <- read.table("eBayNumberOfBidderData.dat", header = TRUE)
-ebay.glm <- glm(nBids ~ .-Const, data = ebay.data, family = poisson)
+ebay.glm <- glm(nBids ~ .-Const, data = ebay.data, family = poisson(link=log))
 summary(ebay.glm)
 
 # Estimate tells us: MinBidShare most important -1.89, sealed 0.44, veriID 0.39, majBlem -0.22 ,logBook -0.12, bleh
@@ -16,16 +16,11 @@ n <- dim(ebay.data)[1]
 p <- dim(ebay.data)[2]
 X <- scale(as.matrix(ebay.data[,3:10]))
 Y <- ebay.data[,1]
-C <- cov(X)
-lambda <- 5
-sigma  <- 100*solve(t(C)%*%C)
-
+sigma  <- 100*t(X)%*%X
 log.poisson.posterior.of.beta <- function(beta) { 
-  print(length(beta))
-  print(dim(sigma))
-  lambda <- X %*% beta
+  lambda <- exp(X %*% beta)
   beta.log.prior         <- dmvnorm(beta, sigma = sigma, log = TRUE)
-  poisson.log.likelihood <- sum(lambda^Y*exp(-lambda)) #dpois(Y, z, log = TRUE))
+  poisson.log.likelihood <- sum(log(lambda^Y*exp(-lambda))) #dpois(Y, z, log = TRUE))
   poisson.log.likelihood + beta.log.prior
 }
 
@@ -41,4 +36,5 @@ optim.beta <- optim(beta.initial,
                     control = list(fnscale=-1))
 
 # beta.prior <- dnorm(grid, 0, 100* solve(t(C) %*% C)
+optim.beta
 
