@@ -12,84 +12,93 @@ summary(ebay.glm)
 library(optimr)
 library(mvtnorm)
 
-n <- dim(ebay.data)[1]
-p <- dim(ebay.data)[2]
-X <- scale(as.matrix(ebay.data[,3:10]))
-Y <- ebay.data[,1]
-sigma  <- 100*t(X)%*%X
-log.poisson.posterior.of.beta <- function(beta) { 
-  lambda <- exp(X %*% beta)
-  beta.log.prior         <- dmvnorm(beta, sigma = sigma, log = TRUE)
-  poisson.log.likelihood <- sum(dpois(Y, lambda, log = TRUE)) # log(lambda^Y*exp(-lambda))) #
+log.posterior.of.beta <- function(beta, mu0, sigma0, X, Y) { 
+  beta.log.prior         <- dmvnorm(beta, mu0, sigma0, log = TRUE)
+  poisson.log.likelihood <- sum(dpois(Y, exp(X %*% beta), log = TRUE))
   poisson.log.likelihood + beta.log.prior
 }
 
-beta.initial = rep(0, dim(X)[2])
+Y      <- ebay.data[,1]
+X      <- as.matrix(ebay.data[,2:10])
+n      <- dim(X)[1]
+p      <- dim(X)[2]
+mu0       <- rep(0, p)
+sigma0    <- 100*solve(t(X)%*%X)
+beta.init <- rep(0, p)
 
-## This gives values around 10^280
-optim.beta <- optim(beta.initial, 
-                    log.poisson.posterior.of.beta,
+optim.beta <- optim(beta.init, 
+                    log.posterior.of.beta,
                     gr      = NULL,
+                    mu      = mu0,
+                    sigma   = sigma0,
+                    X       = X,
+                    Y       = Y,
                     hessian = TRUE,
                     method  = c("BFGS"),
                     control = list(fnscale=-1))
 
-# beta.prior <- dnorm(grid, 0, 100* solve(t(C) %*% C)
-# Ta bort / ha med intercept?
-
-# c)
-# Assumes diagonal covariance matrix, is that fine?
-metropolis <- function(c, logPostFunc, theta, ...) {
-  n       <- length(theta)
-  sigma   <- c*diag(n)
-  theta_p <- as.vector(rmvnorm(1, theta, sigma, ...))
-  log.prob.theta   <- logPostFunc(theta, ...)
-  log.prob.theta_p <- logPostFunc(theta_p, ...)
-  
-  alpha  <- min(1, exp(log.prob.theta_p - log.prob.theta))
-  accept <- runif(1, 0, 1) > alpha
-  if (accept) {
-    list(theta = theta_p, accept = accept)
-  } else {
-    list(theta = theta, accept = accept)
-  }
-}
-
-nSamples <- 3000
-d <- dim(X)[2]
-c <- 0.0000001
-betas     <- matrix(rep(rep(0, d), nSamples), ncol = d)
-betas[1,] <- rmvnorm(1, optim.beta$par, 0.1*diag(d))
-accepts <- rep(0, nSamples-1)
 log.approx.normal.posterior <- function (x) { 
   dmvnorm(x, optim.beta$par, -solve(optim.beta$hessian), log = TRUE) 
 }
 
-for (i in 2:nSamples) {
-  result <- metropolis(c, log.approx.normal.posterior, betas[i-1,])
-  betas[i,]  <- result$theta
-  accepts[i-1] <- result$accept
+# c)
+metropolis.sample <- function(sigma, logPostFunc, theta_c, ...) {
+  theta_p <- as.vector(rmvnorm(1, theta_c, sigma))
+  log.prob.theta_c <- logPostFunc(theta_c, ...)
+  log.prob.theta_p <- logPostFunc(theta_p, ...)
+  alpha  <- min(1, exp(log.prob.theta_p - log.prob.theta_c))
+  accept <- runif(1, 0, 1) < alpha
+  
+  if (accept) {
+    list(theta = theta_p, accept = accept)
+  } else {
+    list(theta = theta_c, accept = accept)
+  }
 }
-burnin <- nSamples / 2
-accepts.reduced <- accepts[burnin:nSamples-1]
-accept.ratio <- sum(accepts.reduced) / length(accepts.reduced)
-approx.post.mean <- apply(betas[burnin:nSamples,], 2, mean)
 
-accept.ratio
-approx.post.mean
+# Initial beta is zero vector
+metropolis <- function (nSamples, burnin) {
+  c <- 0.5
+  sigma.proposal <- -c * solve(optim.beta$hessian)
+  betas     <- matrix(rep(rep(0, p), nSamples), ncol = p)
+  accepts <- rep(0, nSamples-1)
+  for (i in 2:nSamples) {
+    result <- metropolis.sample(sigma.proposal, 
+                         log.posterior.of.beta, 
+                         betas[i-1,],
+                         mu0,
+                         sigma0,
+                         X,
+                         Y)
+    betas[i,]  <- result$theta
+    accepts[i-1] <- result$accept
+  }
+  
+  valid.accepts <- accepts[burnin:nSamples]
+  accept.ratio <- sum(valid.accepts) / length(valid.accepts)
+  valid.betas <- betas[burnin:nSamples,]
+  list(betas = valid.betas, accept.ratio = accept.ratio)
+}
+res <- metropolis(5000, 1000)
 
 plot(optim.beta$par, col ="blue", type ="l", ylim = c(-2.5,1.5))
 points(ebay.glm$coefficients[2:9], col ="red",type ="l")
 points(approx.post.mean, type="l", col="green")
 
-# These shuld be noise, right? Too bad.
-plot(betas[,1], type = "l", col="red")
+plot(valid.betas[,1], type = "l", col="red")
+plot(valid.betas[,2], type = "l", col="red")
+plot(valid.betas[,3], type = "l", col="red")
+plot(valid.betas[,4], type = "l", col="blue")
+plot(valid.betas[,5], type = "l", col="blue")
+plot(valid.betas[,6], type = "l", col="blue")
+plot(valid.betas[,7], type = "l", col="blue")
+plot(valid.betas[,8], type = "l", col="blue")
 
-plot(betas[,2], type = "l", col="red")
-plot(betas[,3], type = "l", col="red")
-plot(betas[,4], type = "l", col="blue")
-plot(betas[,5], type = "l", col="blue")
-plot(betas[,6], type = "l", col="blue")
-plot(betas[,7], type = "l", col="blue")
-plot(betas[,8], type = "l", col="blue")
+# d)
 
+# New data point with const
+x <- c(1, 1, 1, 1, 0, 0, 0, 1, 0.5)
+beta <- metropolis(5000, 1000)$betas
+prob <- dpois(0, exp(x %*% t(beta)))
+plot(density(prob))
+mean(prob)     
