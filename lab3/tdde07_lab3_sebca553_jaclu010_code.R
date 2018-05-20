@@ -79,9 +79,10 @@ delta <- 0.05
 grid  <- seq(-100, 300, delta)
 plot(grid, dt(grid, 5, 0, 1))
 
-setEPS()
-postscript("graphical-comparison.eps")
-plot(density(x), col = 'black',
+
+plot.graphical.comparison <- function () {
+    plot(density(x), col = 'black',
+
          main ="Graphical comparison of the data and approximations",
          ylab = "Density",
          xlab  = "Precipitation")
@@ -93,10 +94,10 @@ plot(density(x), col = 'black',
        col=c("black", "green", "orange"), 
        bty='n', 
        cex=.75)
-dev.off()
+}
 
 # 2 Time series models in Stan
-library(rstan)
+#library(rstan)
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
@@ -248,8 +249,8 @@ x.quant <- apply(theta.t, 2, quantile, probs=c(0.025,0.975))
 
 #setEPS()
 #postscript("posterior-with-sigma-0.02-prior.eps")
-setEPS()
-postscript("posterior-credible-interval.eps")
+plot.ar.posterior.mean <- function () {
+
 plot(x.quant[1,], type = 'l', col='red',
      main = "Plot of posterior mean and 95% credible interval",
      xlab = "T",
@@ -263,8 +264,7 @@ legend("topright",
        col=c("red", "blue", "grey"), 
        bty='n', 
        cex=.75)
-dev.off()
-
+}
 c.df <- as.data.frame(fit)
 head(as.matrix(c.fit)[,1])
 
