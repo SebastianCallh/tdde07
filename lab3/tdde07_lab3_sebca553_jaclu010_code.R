@@ -65,9 +65,9 @@ sigma2_0  <- rep(sigma0,nComp) # s20 (best guess of sigma2)
 nu0       <- rep(nu0,nComp)    # degrees of freedom for prior on sigma2
 
 #setEPS()
-#postscript("mixture-of-normals.eps")
-#source("NormalMixtureGibbs.R")
-#points(campy.data)
+postscript("mixture-of-normals.eps")
+source("NormalMixtureGibbs.R")
+points(campy.data)
 #dev.off()
 
 
@@ -77,9 +77,11 @@ gibbs.mu    <- mean(thetas[,1])
 gibbs.sigma <- sqrt(mean(thetas[,2]))
 delta <- 0.05
 grid  <- seq(-100, 300, delta)
+plot(grid, dt(grid, 5, 0, 1))
 
-plot.graphical.comparison <- fuction () {
-    plot(density(x), col = 'black',
+setEPS()
+postscript("graphical-comparison.eps")
+plot(density(x), col = 'black',
          main ="Graphical comparison of the data and approximations",
          ylab = "Density",
          xlab  = "Precipitation")
@@ -91,7 +93,7 @@ plot.graphical.comparison <- fuction () {
        col=c("black", "green", "orange"), 
        bty='n', 
        cex=.75)
-}
+dev.off()
 
 # 2 Time series models in Stan
 library(rstan)
@@ -100,11 +102,11 @@ rstan_options(auto_write = TRUE)
 
 # a)
 
-ar.process <- function (phi, init, sigma, T) {
+ar.process <- function (phi, mu, sigma, T) {
     y     <- rep (0, T)
-    y[1]  <- init
+    y[1]  <- mu
     for (t in 2:T) {
-        y[t] <- mu + phi*(y[t-1] - mu) + rnorm(1, 0, sigma)
+        y[t] <- rnorm(1, mu + phi*(y[t-1] - mu),  sigma)
     }
     y
 }
@@ -113,9 +115,9 @@ T     <- 200
 mu    <- 10
 phi1  <- 0.3
 phi2  <- 0.95
-s <- sqrt(2)
-x <- ar.process(phi1, mu, s, T)
-y <- ar.process(phi2, mu, s, T)
+sigma <- sqrt(2)
+x <- ar.process(phi1, mu, sigma, T)
+y <- ar.process(phi2, mu, sigma, T)
 
 plot.ar.process <- function () {
     plot(x, type ='l')
@@ -126,13 +128,16 @@ plot.ar.process <- function () {
 x.fit <- stan(file = "time-series.stan",
             data = list(
                 x = x,
-                N = T
-            ))
+                N = T)
+            )
 y.fit <- stan(file = "time-series.stan",
             data = list(
                 x = y,
-                N = T
-            ))
+                N = T)
+            )
+traceplot(x.fit)
+traceplot(y.fit)
+plot(x, type ='l')
 
 posterior.mean.x <- get_posterior_mean(x.fit)
 posterior.mean.y <- get_posterior_mean(y.fit)
@@ -142,19 +147,56 @@ head(posterior.mean.x)
 mu.x.post    <- posterior.mean.x[1, 5]
 sigma.x.post <- posterior.mean.x[2, 5]
 phi.x.post   <- posterior.mean.x[3, 5]
-x.params <- extract(x.fit, pars = c("mu", "phi"))
-y.params <- extract(y.fit, pars = c("mu", "phi"))
+x.params <- extract(x.fit, pars = c("mu", "phi", "sigma"))
+y.params <- extract(y.fit, pars = c("mu", "phi", "sigma"))
+
+
+y.post <- ar.process(mean(y.params$phi),
+                     mean(y.params$sigma),
+                     mean(y.params$mu),
+                     T)
+                     
+x.post <- ar.process(mean(x.params$phi),
+                     mean(x.params$sigma),
+                     mean(x.params$mu),
+                     T)
+
+
+plot(x.fit)
+plot(x.post, type='l', col="green")
+lines(x, col="red")
+
+plot(y.fit)
+plot(y.post, type='l', col="green")
+lines(y, col="red")
+
+plot(y.params$mu, y.params$phi)
+summary(x.fit)
+mean(x.params$mu)
+mean(x.params$phi)
+mean(x.params$sigma)
+quantile(x.params$mu, probs = c(0.05, 0.95))
+quantile(x.params$phi, probs = c(0.05, 0.95))
+quantile(x.params$sigma, probs = c(0.05, 0.95))
+
+setEPS()
+postscript("joint-posterior-density-ar-x.eps")
 plot(x    = x.params$mu,
      y    = x.params$phi,
      main = 'Joint posterior density of mu and phi for process x',
      xlab = expression(mu),
      ylab = expression(phi))
 
+dev.off()
+
+setEPS()
+postscript("joint-posterior-density-ar-y.eps")
 plot(x    = y.params$mu,
      y    = y.params$phi,
      main = 'Joint posterior density of mu and phi for process y',
      xlab = expression(mu),
      ylab = expression(phi))
+dev.off()
 
 mu.y.post    <- posterior.mean.y[1, 5]
 sigma.y.post <- posterior.mean.y[2, 5]
@@ -162,6 +204,9 @@ phi.y.post   <- posterior.mean.y[3, 5]
 
 z.x <- ar.process(phi.x.post, mu.x.post, sigma.x.post, T)
 z.y <- ar.process(phi.y.post, mu.y.post, sigma.y.post, T)
+
+x.fit
+y.fit
 
 setEPS()
 postscript("estimated-parameters-of-from-y.eps")
@@ -203,7 +248,8 @@ x.quant <- apply(theta.t, 2, quantile, probs=c(0.025,0.975))
 
 #setEPS()
 #postscript("posterior-with-sigma-0.02-prior.eps")
-function <- plot.ar.posterior.mean <- function () {
+setEPS()
+postscript("posterior-credible-interval.eps")
 plot(x.quant[1,], type = 'l', col='red',
      main = "Plot of posterior mean and 95% credible interval",
      xlab = "T",
@@ -217,7 +263,7 @@ legend("topright",
        col=c("red", "blue", "grey"), 
        bty='n', 
        cex=.75)
-}
+dev.off()
 
 c.df <- as.data.frame(fit)
 head(as.matrix(c.fit)[,1])
