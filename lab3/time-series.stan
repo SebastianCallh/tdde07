@@ -1,14 +1,17 @@
 data {
-  int<lower=0> N;
-  vector[N] x;
+  int<lower=1> N;
+  real x[N];
 }
-
 parameters {
   real mu;
-  real<lower=0> sigma;
-  real phi;
+  real<lower=0> sigma2;
+  real<lower=-1,upper=1> phi;
 }
-
+transformed parameters {
+  real sigma;
+  sigma = sqrt(sigma2);
+}
 model {
-  x[2:N] ~ normal(mu + phi * x[1:(N - 1)], sigma);
+ for (n in 2:N)
+   x[n] ~ normal(mu + phi * (x[n-1] - mu), sigma);
 }
