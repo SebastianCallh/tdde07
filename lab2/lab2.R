@@ -174,6 +174,9 @@ J        <- result$hessian
 # numerical values should be in the report
 beta.post <- rmvnorm(10000, beta_hat, -solve(J))
 
+# Correlation matrix from the Hessian evaluated in mode
+neg.j.inv <- -solve(result$hessian)
+
 #NSmallChild
 nsc <- beta.post[,7]
 q1 <- quantile(nsc, c(0.025,0.975))
@@ -183,13 +186,16 @@ plot.density.nsc <- function() {
        xlab = expression(beta))
 }
 
-# compute 95% credible interval for NSmallChild?
 x <- c(1, 10, 8, 10, 1, 40, 1, 1)
-y_hat <- x %*% t(beta.post)
-p <- 1 / (1 + exp(-y_hat))
+z <- x %*% t(beta.post)
+post.theta.dist <- 1 / (1 + exp(-z))
+theta <- mean(post.theta.dist)
 plot.does.work <- function() {
-  plot(density(p),
-       xlab = "Work",
-       main = "Predictive density of the probability of the woman working")
-  sprintf("The mean probability that the woman works is %.2f", mean(p))
+    barplot(c(theta, 1 - theta),
+            space = 1,
+            ylim = c(0, 1),
+            names.arg = c("Works", "Does not work"),
+            ylab = "Probability",
+            main = "Posterior predictive distribution of the woman working")
+    sprintf("The mean probability that the woman works is %.2f", mean(p))
 }
