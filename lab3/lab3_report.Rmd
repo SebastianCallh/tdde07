@@ -1,0 +1,155 @@
+---
+title: "TDDE07 - Lab 3"
+author: "Sebastian Callh, Jacob Lundberg"
+date: "8 maj 2018"
+output:
+  pdf_document:
+    fig_height: 4
+    fig_width: 5
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.align = "center")
+source('lab3_no_stan.R')
+```
+
+## 1. Normal model, mixture of normal model with semi-conjugate prior
+
+### a) - Normal model
+
+#### (ii) - Analysis
+Looking at the trajectories for $\mu$ and $\sigma$ it can be seen that the values are not very auto correlated, which implies good draws. They also oscillate around a stable value.
+```{r}
+plot.gibbs.trajectory()
+```
+
+### b) Mixture normal model
+After running the `NormalMixtureGibbs.R` for 30 iterations the mixture model had converged to the distribution seen in the plot below.
+
+\centerline{\includegraphics[width=0.9\textwidth]{mixture-of-normals.eps}}
+
+### c) Graphical comparison
+\centerline{\includegraphics[width=0.9\textwidth]{graphical-compasison.eps}}
+
+## 2. Time-series models in Stan
+
+### a)
+Plotting realizations of the AR(1)-process shows that a high $\phi$ gives a smoothing effect and a small (into the negatives) gives an oscillating effect. When $\phi$ is close to zero all contributions of $x_{t-1}$ is supressed and only white noise remains.
+
+```{r}
+plot.ar.process()
+```
+
+### b)
+
+### i)
+Report of the values of the three estimated parameters $\mu$, $\sigma$ and $\phi$ can be seen below. For process $x$ the parameters were fairly well approximated (the $\mu$ was still quite bad), but for process $y$ the approximated $\mu$ was terrible. We were not able to estimate the true value of $\mu$. The estimation was done with 4000 samples.
+
+\begin{table}[h!]
+  \begin{center}
+    \caption{Estimated parameters of AR(1) process X ($\phi = 0.3$)}
+    \begin{tabular}{c|c|c|c}
+      & $\mu$ & $\sigma$ & $\phi$ \\
+      \hline
+      Mean  & 7.25 & 1.38 & 0.28 \\
+      2.5\%  & 5.83 & 1.24 & 0.14 \\
+      97.5\% & 8.62 & 1.53 & 0.42 \\
+      Eff. samples & 1108 & 1450 & 1098 \\
+      True value & 10 & 1.41 & 0.3 \\
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\centerline{\includegraphics[width=0.7\textwidth]{estimated-parameters-of-from-x.eps}}
+
+\pagebreak
+
+\begin{table}[h!]
+  \begin{center}
+    \caption{Estimated parameters of AR(1) process Y ($\phi = 0.95$)}
+    \begin{tabular}{c|c|c|c}
+      & $\mu$ & $\sigma$ & $\phi$ \\
+      \hline
+      Mean   & 0.35  & 1.34 & 0.96 \\
+      2.5\%  & -0.10 & 1.22 & 0.92 \\
+      97.5\% & 0.81  & 1.48 & 1.00 \\
+      Eff. samples & 1726 & 2166 & 1729 \\
+      True value & 10 & 1.41 & 0.95 \\
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\centerline{\includegraphics[width=0.7\textwidth]{estimated-parameters-of-from-y.eps}}
+
+### ii)
+
+Plotting the joint posterior distributon of $\mu$ and $\phi$ shows that they are highly inversely correlated. 
+
+\centerline{\includegraphics[width=0.9\textwidth]{joint-posterior-density-ar-y.eps}}
+\centerline{\includegraphics[width=0.9\textwidth]{joint-posterior-density-ar-x.eps}}
+
+### c)
+
+Estimating the model with Stan and plotting the posterior mean with the data resulted in the following plot.
+
+\centerline{\includegraphics[width=0.9\textwidth]{posterior-credible-interval.eps}}
+
+### d)
+
+Assuming a normal prior on $\sigma^2$ with $\mu = 0$, $\tau^2 = 0.02$ forces the process to vary more slowly. This is reflected in the posterior, which shows that the process is too slow to capture the data.
+
+
+\centerline{\includegraphics[width=0.9\textwidth]{posterior-with-sigma-0.02-prior.eps}}
+
+\pagebreak
+
+## Appendix
+```{r, code=readLines('tdde07_lab3_sebca553_jaclu010_code.R'), echo=TRUE, eval=FALSE}
+
+```
+
+### Stan file
+
+```{r, echo=TRUE, eval=FALSE}
+data {
+  int<lower=0> N;
+  vector[N] x;
+}
+
+parameters {
+  real mu;y <- ar.process(phi2, mu, s, T)
+  real<lower=0> sigma;
+  real phi;
+}
+
+model {
+  x[2:N] ~ normal(mu + phi * x[1:(N - 1)], sigma);
+}
+```
+
+### Stan file for `campy.dat`
+
+```{r, echo=TRUE, eval=FALSE}
+data {
+  int<lower=0> N;
+  int c[N];
+}
+
+parameters {
+  real mu;
+  real<lower=0> sigma;
+  real phi;
+  vector[N] x;
+}
+
+model {
+  // sigma  ~ normal(0, 0.02);
+  phi    ~ normal(0, 0.6);
+  x[2:N] ~ normal(mu + phi * x[1:(N - 1)], sigma);
+  for (n in 1:N)
+    c[n] ~ poisson(exp(x[n]));
+}
+```
+
