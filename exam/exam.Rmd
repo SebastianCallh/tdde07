@@ -1,0 +1,373 @@
+---
+title: "Exam file"
+author: "Jacob Lundberg, Sebastian Callh"
+date: "25 maj 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.align = "center")
+posterior.col  = "orange"
+likelihood.col = "red"
+prior.col      = "green"
+source('exam_code.R')
+```
+
+# ------- Lab 1 -------
+
+## 1. Bernoulli ... again
+
+### a)
+The mean of a Bernoulli distribution is given by $p = \frac{s}{n} = \frac{14}{20} \approx 0.7$ which is very close to the mean of the simulated posterior distribution plotted below. 
+
+```{r}
+# a) Show that posterior converges to 14/20 approx. 0.7
+alpha0 <- 2
+beta0  <- 2 
+nDraws <- 10000
+n      <- 20
+s      <- 14
+f      <- n - s
+post   <- rbeta(nDraws, alpha0 + s, beta0 + f)
+hist(post, 
+     breaks = 100,
+     main   = "Histogram of posterior draws",
+     xlab   = expression(theta))
+```
+
+The posterior mean and the true mean are close to each other and increasing the number of draws will let them come arbitrarily close.
+
+```{r}
+sprintf("Mean of posterior draws %f", mean(post))
+```
+
+### b)
+The posterior probability and the true probability for $P(\theta < 0.4)$ lie very close to each other. As with the mean value, increasing the number of draws will let the posterior probability approach the true probability.
+
+```{r}
+# b) Simulation to compute posterior probability P(theta < 0.4 | y)
+thetas <- rbeta(nDraws, alpha0 +s , beta0 + f)
+sprintf("Simulated probability of theta < 0.4: %f", length(thetas[thetas<0.4]) / length(thetas))  # Simulated value
+sprintf("Exact probability of theta < 0.4: %f", pbeta(0.4, alpha0 + s, beta0 + f))                # Exact value
+```
+
+### c)
+The log-odds posterior distribution can be seen in the plot below.
+
+```{r}
+# c) Log odds posterior distribution
+phi <- sapply(thetas, function(theta) { log(theta / (1 - theta)) })
+phi.dens <- density(phi)
+plot(phi.dens,
+     main = "Log-odds posterior distribution", 
+     ylab = "Density",
+     xlab = expression(phi),
+     col  = posterior.col)
+```
+
+\pagebreak
+
+## 2. Log-normal distribution and the Gini coefficient. 
+
+### a)
+Simulating from the posterior and plotting the approximated density together with the theoretical density reveals that the approximation is quite good, which can be seen in the plot below.
+
+```{r}
+incomes <- c(14, 25, 45, 25, 30, 33, 19, 50, 34, 67)
+mu      <- 3.5
+n       <- length(incomes)
+tau2    <- sum((log(incomes) - mu)^2) / n 
+nDraws  <- 10000
+dinvgamma <- function(x, a, b) {
+  (b^a)/gamma(a) * x^(-a-1) * exp(-b/x)
+}
+
+dinvchisq2 <- function(x, n, tau2) {
+  a <- n / 2
+  b <- n*tau2 / 2
+  dinvgamma(x, a, b)
+}
+
+# a) Simulate posterior draws
+X           <- rchisq(nDraws, n)
+sigma2      <- n*tau2/X
+sigma2.dens <- density(sigma2)
+
+plot(sigma2.dens, col = "blue", 
+     main = "Posterior density of sigma^2",
+     xlab = expression(sigma^2),
+     ylim = c(0,5),
+     xlim = c(0,2))
+
+# Theoretical sigmas
+delta  <- 0.01
+grid   <- seq(0.01, 2.5, delta)
+sigmas <- dinvchisq2(grid, n, tau2)
+lines(grid, sigmas/(sum(sigmas)*delta), type = 'l', col = "orange")
+legend("topright", 
+       c("Simulated distribution", "Theoretical distribution"), 
+       col = c("blue", "orange"),
+       lty = 1,
+       bty='n', 
+       cex=.75)
+```
+
+### b)
+Using the samples from a) and computing the posterior distribution of the Gini coefficient G results in the plot below.
+
+```{r}
+# b) Gini coefficient posterior
+G      <- 2*pnorm(sqrt(sigma2/2)) - 1
+#G.hist <- hist(G, breaks = 100, freq = FALSE, xlim = 0:1)
+
+# c) G Credible interval
+G.slice <- sort(G)[(0.025*nDraws):(0.975*nDraws)]
+cred.lower.bound <- min(G.slice)
+cred.upper.bound <- max(G.slice)
+G.dens <- density(G)
+plot(G.dens,
+     main = "Posterior distribution of G",
+     xlab = "G",
+     col  = posterior.col)
+```
+
+### c)
+Computing the 95% credible interval results in 
+```{r}
+sprintf("Credible interval lower bound: %f", cred.lower.bound)
+sprintf("Credible interval upper bound: %f", cred.upper.bound)
+```
+and computing the Highest Posterior Density interval results in
+
+```{r}
+# c) G Highest Posterior Density (HPD)
+i      <- order(G.dens$y, decreasing = TRUE)
+csum   <- cumsum(G.dens$y[i])
+m      <- length(csum[csum < sum(G.dens$y)*0.95])
+H      <- G.dens$x[i][1:m]
+hpd.lower.bound <- min(H)
+hpd.upper.bound <- max(H)
+sprintf("HPD lower bound: %f", hpd.lower.bound)
+sprintf("HPD upper bound: %f", hpd.upper.bound)
+```
+
+\pagebreak
+
+## 3. Bayesian inference for the concentration parameter in the Von Mises distribution
+Plotting the posterior distribution of $\kappa$ together with the prior and likelihood results in the plot below.
+
+```{r}
+
+Von.Mises <- function (y, mu, k){
+  exp(k*cos(y - mu)) / (2*pi*besselI(k, 0))
+}
+
+Y          <- c(-2.44, 2.14, 2.54, 1.83, 2.02, 2.33, -2.79, 2.23, 2.07, 2.02)
+mu         <- 2.39
+lambda     <- 1
+delta      <- 0.05
+kappas     <- seq(0, 10, delta)
+likelihood <- sapply(kappas, function (k) { prod(Von.Mises(Y, mu, k)) })
+prior      <- dexp(kappas, lambda)
+posterior  <- likelihood * prior
+
+plot(kappas, posterior/(sum(posterior)*delta),
+     main = "Posterior distribution of kappa",
+     xlab = expression(kappa),
+     ylab = "Density",
+     col  = posterior.col, 
+     type = 'l')
+lines(kappas, likelihood/(sum(likelihood)*delta), col ="red")
+lines(kappas, prior/(sum(prior)*delta), col ="green")
+legend("topright", 
+       c("Posterior", "Likelihood", "Prior"), 
+       lty=1, 
+       col=c(posterior.col, likelihood.col, prior.col), 
+       bty='n', 
+       cex=.75)
+
+```
+
+Which has it's mode at
+```{r}
+sprintf("Posterior mode: %.2f", kappas[which.max(posterior)])
+```
+
+\pagebreak
+
+```{r, code=readLines('../lab1/tdde07_lab1_sebca553_jaclu010_code.R'), echo=TRUE, eval=FALSE}
+
+```
+
+\pagebreak
+
+# ------- Lab 2 -------
+
+## Assignment 1 - Linear and polynomial regression
+
+### a)
+
+When selecting the prior hyperparameters we had some domain knowledge from the course TDDE01, where we had processed weather data before. From that we knew that the mean temperature in Sweden was about 8 degrees. Of course, we also knew that it is warmer during the middle half of the year than the earlier/later. Apart from that we knew very little, so in the light of that knowledge we assigned our priors by iteratively plotting a collection of prior regression curves and tweaking our values. The final paremetrisation was  $$\mu_0 =(-10, 150, -150),\nu_o=20,\Omega_0= \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix},\sigma^2=2.$$ A collection of prior prediction curves from the final parametrisation can be seen below.
+
+### b)
+```{r}
+plot.prior.regression.curves()
+```
+
+### c)
+Since a conjugate prior was used the joint posterior distribution of $\beta$ and $\sigma^2$ was computed by the posterior mapping. A scatter plot with the temperature data and the regression function mean with a 90% credible interval can be seen below.
+
+```{r}
+plot.posterior.betas()
+```
+
+The interval barely contains any data. It should not, since it only quantifies the uncertainty about the data mean and not the actual data.
+
+### d)
+Finding the warmest day is done by finding the maximum of a second degree polynomial. This is done by differentiating the function, setting it to $0$ and solving for $t$ which gives $t=-\frac{\beta_1}{2\beta_2}$. Computing the maximum for several posterior draws of $\beta$ yields the distribution plotted below which has the mean value $196.6476 \approx 197$.
+
+```{r}
+plot.day.density()
+```
+
+### e)
+Since the higher order terms are not believed to be needed they can be assigned $\mu_i=0$ and $\Omega_{0,ii}$ very large. That is, we assign the prior formalizing our beliefe that they should be very small. That will reduce the models flexibility and combat overfitting. 
+
+## 2. Posterior approximation for classification with logistic regression
+### a)
+No questions asked on this part.
+
+### b)
+Using `optim.R` to find $\hat{\beta}=(0.38, -0.01, 0.11, 0.10, -0.09, -0.05, -0.82, -0.01)$ and 
+$$J_y^{-1}(\hat{\beta})=\begin{bmatrix} 
+-105.78  &  -2216.83 &  -1311.95 & -1047.17  &  -156.42 & -4451.79   & -27.35  & -137.88 \\
+-2216.83 & -60854.93 & -28817.20 & -21918.24 & -3196.04 & -94428.20  & -542.68 & -2776.39 \\
+-1311.91 & -28817.20 & -16881.39 & -12957.13 & -1907.13 & -55135.90  & -361.45 & -1657.08 \\
+-1047.17 & -21918.24 & -12957.13 & -15641.80 & -2930.44 & -46403.13  & -208.47 & -1061.18 \\
+-156.42  & -3196.04  & -1907.13  & -2930.43  & -645.15  & -7243.13   & -21.19  & -124.80 \\
+-4451.79 & -94428.20 & -55135.90 & -46403.13 & -7243.13 & -194210.76 & -930.93 & -5397.63 \\
+-27.35   & -542.68   & -361.45   & -208.48   & -21.20   & -930.93    & -34.64  & -40.13 \\
+-137.88  & -2776.32  & -1657.09  & -1061.18  & -124.80  & -5397.64   & -40.13  & -368.02 \\
+\end{bmatrix}$$
+
+
+The plot below shows the distribution of the `NSmallChild` variable. 95% credible interval limits are included. 
+
+```{r}
+plot.density.nsc()
+sprintf("Credible interval 2.5 %% limit: %f", q1[1])
+sprintf("Credible interval 97.5%% limit: %f", q1[2]) 
+```
+
+Comparing the posterior mean of the other $\beta$ show that the $\beta$ corresponding to `NSmallChild` is the biggest, and because of that `NSmallChild`is an important factor. The actuall numbers can be seen below.  
+```{r}
+summary(glmModel)
+```
+
+The `Estimate` column shows a significantly larger value for `NSmallChild` compared to the others. Thus it is important.
+
+### c)
+The predictive distribution that a woman works that is 40 years old, with two children (aged 3 and 9), 8 years of education, 10 years of experience and a husband with income 10 is described by the following plot.
+
+```{r}
+plot.does.work()
+```
+\pagebreak
+
+```{r, code=readLines('lab2.R'), eval=FALSE, echo=TRUE}
+```
+
+\pagebreak
+
+# ------- Lab 3 -------
+
+
+
+
+\pagebreak
+
+# ------- Lab 4 -------
+
+## Poisson regression - the MCMC way
+
+#a)
+
+Using `glm` to estimate $\beta$ resulted in the coefficients in the table below.
+
+\begin{table}[h!]
+  \begin{center}
+    \caption{Point estimate of $\beta$.}
+    \begin{tabular}{c|c|c|c|c|c|c|c|c}
+    (Intercept) & PowerSeller &  VerifyID   &   Sealed  &   Minblem &    MajBlem    & LargNeg &    LogBook & MinBidShare \\ 
+    \hline
+     1.072      & -0.021      & -0.395      & 0.444     & -0.052    & -0.221        & 0.071    &    -0.121 &   -1.894 \\
+    \end{tabular}
+  \end{center}
+\end{table}
+
+It can be seen that the coefficients  `VerifyID`, `Sealed`, `MajBlem`, `MinBidShare` are important, with `MinBidShare` being most important. 
+
+#b)
+
+Using `optim` to compute the posterior mode (and mean) of the coefficients for the normal approximation resulted in the coefficients in the table below. 
+
+\begin{table}[h!]
+  \begin{center}
+    \caption{Point estimate of $\beta$.}
+    \begin{tabular}{c|c|c|c|c|c|c|c|c}
+    (Intercept) & PowerSeller &  VerifyID   &   Sealed  &   Minblem &    MajBlem    & LargNeg &    LogBook & MinBidShare \\ 
+    \hline
+    1.070 & -0.021 & -0.393 &  0.444 & -0.052 & -0.221 &  0.071 & -0.120&  -1.892 \\
+    \end{tabular}
+  \end{center}
+\end{table}
+
+#c)
+
+Using Metropolis random walk to simulate from the posterior $\beta$ distribution resulted in the posterior mean coefficients which can be seen below.
+
+\begin{table}[h!]
+  \begin{center}
+    \caption{Point estimate of $\beta$.}
+    \begin{tabular}{c|c|c|c|c|c|c|c|c}
+    (Intercept) & PowerSeller &  VerifyID   &   Sealed  &   Minblem &    MajBlem    & LargNeg &    LogBook & MinBidShare \\ 
+    \hline
+    1.068   & -0.017 & -0.394 &  0.445 & -0.051 & -0.224 &  0.076 & -0.121 &  -1.890 \\
+    \end{tabular}
+  \end{center}
+\end{table}
+
+```{r}
+plot.posterior.beta.samples()
+```
+
+Observing the plots above it can be seen that all chains have converged to the static distribution.
+
+```{r}
+plot.posterior.phis()
+```
+
+Mapping onto $\phi = \exp(\beta)$ and plotting the densities gives the plots that can be seen above.
+
+```{r}
+plot.graphical.comparison()
+```
+
+Finally comparing the differenet estimated $\beta$ shows that they all did a good job.
+
+#d)
+
+Using the MCMC draws from c) to simulate from the predictive distribution of the provided data point resulted in the distribution that can be seen below. The expected value of no bidders was $0.36$.
+
+```{r}
+plot.posterior.predictive.density()
+```
+
+\pagebreak
+
+```{r, code=readLines('tdde07_lab4_sebca553_jaclu010_code.R'), eval=FALSE,echo=TRUE}
+
+```
+
+
