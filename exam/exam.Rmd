@@ -196,12 +196,6 @@ sprintf("Posterior mode: %.2f", kappas[which.max(posterior)])
 
 \pagebreak
 
-```{r, code=readLines('../lab1/tdde07_lab1_sebca553_jaclu010_code.R'), echo=TRUE, eval=FALSE}
-
-```
-
-\pagebreak
-
 # ------- Lab 2 -------
 
 ## Assignment 1 - Linear and polynomial regression
@@ -272,10 +266,6 @@ The predictive distribution that a woman works that is 40 years old, with two ch
 
 ```{r}
 plot.does.work()
-```
-\pagebreak
-
-```{r, code=readLines('lab2.R'), eval=FALSE, echo=TRUE}
 ```
 
 \pagebreak
@@ -366,7 +356,7 @@ plot.posterior.predictive.density()
 
 \pagebreak
 
-```{r, code=readLines('tdde07_lab4_sebca553_jaclu010_code.R'), eval=FALSE,echo=TRUE}
+```{r, code=readLines('exam_code.R'), eval=FALSE,echo=TRUE}
 
 ```
 
